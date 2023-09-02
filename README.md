@@ -6,6 +6,7 @@
 > 
 > - [Precompiled Headers](#precompiled-headers)
 > - [I/O Completion Ports](#i/o-completion-ports)
+> - [Packet Serialization](#Packet-Serialization)
 
 # Precompiled Headers
 
@@ -30,5 +31,19 @@
 > > 그 소켓에 대한 비동기적인 요청을 실행하기 위해서 `OVERLAPPED`구조체를 넣어준다. I/O에 대한 정보가 `OVERLAPPED`구조체에 담긴다. 
 > > 
 > > 마지막으로 `GetQueuedCompletionStatus`를 통해서 완료된 요청을 받아서 원하는 작업을 하면 된다.
+
+# Packet Serialization
+
+> 클라이언트에서 패킷을 보내면 그 패킷을 활용해서 서버 서비스를 구현한다.
+> 
+> 1. 구조체를 활용한 직렬화
+> 
+> > `#pragma pack(push, 1)`, `#pragma pack(pop)`을 이용해서 alignment를 1BYTE로 한다.
+> > 
+> > 받은 버퍼에 해당하는 구조체 포인터로 읽으면 클라이언트에 보낸 패킷을 그대로 활용할 수 있다.
+> > 
+> > 단순한 만큼 직렬화에 대한 클럭 소모가 없다.
+> > 
+> > 클라이언트를 UE4를 이용해서 만들었기 때문에 간단하게 패킷 직렬화를 했지만, 다른 자료형을 갖는 플렛폼과 언어를 사용할 시 이와 같은 방법은 사용하기에 적합하지 않다.
 
 
