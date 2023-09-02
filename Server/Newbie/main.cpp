@@ -84,7 +84,7 @@ int main()
 	SOCKET clientSocket = accept(listenSocket, (sockaddr*)&clientAddr, &clientAddrLen);
 	if (clientSocket == INVALID_SOCKET)
 	{
-		std::cout << "acceptEx failed with error: " << WSAGetLastError() << std::endl;
+		std::cout << "accept failed with error: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
 		WSACleanup();
 		return 1;
@@ -92,15 +92,16 @@ int main()
 
 	// IOCP에 클라이언트 소켓 등록
 	
-	if (AssociateDeviceWithCompletionPort(HIOCP, (HANDLE)clientSocket, (ULONG_PTR)clientSocket) == false)
+	if (AssociateDeviceWithCompletionPort(HIOCP, (HANDLE)clientSocket, (ULONG_PTR)&clientSocket) == false)
 	{
 		std::cout << "AssociateDeviceWithCompletionPort failed with error: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
+		closesocket(clientSocket);
 		WSACleanup();
 		return 1;
 	}
 
-
+	// recv
 	while (true)
 	{
 		// IOCP에 등록한 소켓의 api 결과를 확인하기 위해서 OVERLLAPED 구조체가 필요하다.
@@ -123,19 +124,63 @@ int main()
 
 		DWORD numberOfBytesTransferred = 0;
 		OVERLAPPED* poverlapped = nullptr;
-		SOCKET completionKey = INVALID_SOCKET;
-		BOOL ret = GetQueuedCompletionStatus(HIOCP, &numberOfBytesTransferred, &completionKey, &poverlapped, INFINITE);
+		SOCKET* completionKey = nullptr;
+		BOOL ret = GetQueuedCompletionStatus(HIOCP, &numberOfBytesTransferred, (PULONG_PTR)&completionKey, &poverlapped, INFINITE);
 		if (ret == FALSE || numberOfBytesTransferred == 0)
 		{
 			// 연결 문제 있음
-			break;
+			 break;
 		}
 		else
 		{
-			std::cout << recvBuffer << std::endl;
+			
+			struct packets::characterPhysInfo* packetoffset = reinterpret_cast<struct packets::characterPhysInfo*>(recvBuffer);
+			std::cout << "Location" << " : " <<
+			packetoffset->Location.X << ", " <<
+			packetoffset->Location.Y << ", " <<
+			packetoffset->Location.Z << std::endl;
+			std::cout << "Rotation" << " : " <<
+			packetoffset->Rotation.Pitch << ", " <<
+			packetoffset->Rotation.Yaw << ", " <<
+			packetoffset->Rotation.Roll << std::endl;
+			std::cout << "Velocity" << " : " <<
+			packetoffset->Velocity.X << ", " <<
+			packetoffset->Velocity.Y << ", " <<
+			packetoffset->Velocity.Z << std::endl;
 		}
 	}
 
+	// send
+	//while (true)
+	//{
+	//	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	//	// OVERLAPPED 구조체 초기화
+	//	OVERLAPPED overlapped;
+	//	ZeroMemory(&overlapped, sizeof(overlapped));
+
+
+	//	// 보낼 버퍼 초기화, 포인터 + 길이
+	//	WCHAR sendBuffer[] = L"test";
+	//	WSABUF wsaBuf;
+	//	wsaBuf.buf = (CHAR*)sendBuffer;
+	//	wsaBuf.len = sizeof(sendBuffer);
+
+	//	DWORD numberOfBytesSent = 0;
+	//	// flag 0이 의미하는 것은??
+	//	DWORD flag = 0;
+	//	WSASend(clientSocket, &wsaBuf, 1, &numberOfBytesSent, flag, &overlapped, nullptr);
+	//	//DWORD numberOfBytesTransferred = 0;
+	//	//OVERLAPPED* poverlapped = nullptr;
+	//	//ULONG_PTR completionKey = NULL;
+	//	//// 연결이 끊긴 경우 무한 대기
+	//	//BOOL ret = GetQueuedCompletionStatus(HIOCP, &numberOfBytesTransferred, &completionKey, &poverlapped, INFINITE);
+	//	//// 실제로 전송된 바이트가 아니라 send request에 대한 바이트다.
+	//	//{
+	//	//	std::cout << "전송 바이트 : " << numberOfBytesTransferred << std::endl;
+	//	//}
+	//	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+	//}
 	CloseHandle(HIOCP);
 	return 0;
 }

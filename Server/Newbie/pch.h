@@ -28,6 +28,9 @@
 // 컴파일 할 때 static library를 링크 시킨다.
 #pragma comment(lib, "ws2_32.lib")
 
+#include "packets.h"
+
+
 #include <iostream>
 #include <thread>
 #include <chrono>
