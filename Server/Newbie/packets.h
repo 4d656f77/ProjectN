@@ -1,8 +1,8 @@
 #pragma once
-#pragma pack(1)
+#pragma pack(push, 1)
 namespace packets
 {
-	// 케릭터 물리 정보
+	// 캐릭터 물리 정보
 	struct characterPhysInfo
 	{
 		struct Location

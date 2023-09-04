@@ -1,5 +1,8 @@
 #include "pch.h"
 
+// 임시 글로벌 변수
+CHAR* recvBuffer;
+OVERLAPPED* overlapped;
 
 HANDLE CreateNewIoCompletionPort(DWORD dwNumberOfConcurrentThreads)
 {
@@ -13,8 +16,49 @@ BOOL AssociateDeviceWithCompletionPort(HANDLE hExistingCompletionPort, HANDLE hF
 	return (_HIOCP == hExistingCompletionPort);
 }
 
+// 스레드들이 실행할 함수
+void recvDispatcher(HANDLE HIOCP)
+{
+	while (true)
+	{
+		DWORD numberOfBytesTransferred = 0;
+		OVERLAPPED* poverlapped = nullptr;
+		SOCKET* completionKey = nullptr;
+		BOOL ret = GetQueuedCompletionStatus(HIOCP, &numberOfBytesTransferred, (PULONG_PTR)&completionKey, &poverlapped, INFINITE);
+		if (ret == FALSE || numberOfBytesTransferred == 0)
+		{
+			// 연결 문제 있음
+			break;
+		}
+		else
+		{
 
+			struct packets::characterPhysInfo* packetoffset = reinterpret_cast<struct packets::characterPhysInfo*>(recvBuffer);
+			std::cout << "Location" << " : " <<
+				packetoffset->Location.X << ", " <<
+				packetoffset->Location.Y << ", " <<
+				packetoffset->Location.Z << std::endl;
+			std::cout << "Rotation" << " : " <<
+				packetoffset->Rotation.Pitch << ", " <<
+				packetoffset->Rotation.Yaw << ", " <<
+				packetoffset->Rotation.Roll << std::endl;
+			std::cout << "Velocity" << " : " <<
+				packetoffset->Velocity.X << ", " <<
+				packetoffset->Velocity.Y << ", " <<
+				packetoffset->Velocity.Z << std::endl;
+		}
 
+		WSABUF wsaBuf;
+		wsaBuf.buf = recvBuffer;
+		wsaBuf.len = 100;
+		DWORD numberOfBytesRecvd = 0;
+		DWORD flags = 0;
+
+		ZeroMemory(poverlapped, sizeof(OVERLAPPED));
+
+		WSARecv(*completionKey, &wsaBuf, 1, &numberOfBytesRecvd, &flags, poverlapped, nullptr);
+	}
+}
 
 
 int main()
@@ -57,7 +101,7 @@ int main()
 		WSACleanup();
 		return 1;
 	}
-
+	
 	iResult = listen(listenSocket, SOMAXCONN);
 	if (iResult == SOCKET_ERROR)
 	{
@@ -66,6 +110,9 @@ int main()
 		WSACleanup();
 		return 1;
 	}
+
+	// 유저 접속 확인
+
 
 	// IOCP 생성
 	HANDLE HIOCP = CreateNewIoCompletionPort(0);
@@ -101,54 +148,36 @@ int main()
 		return 1;
 	}
 
-	// recv
-	while (true)
-	{
-		// IOCP에 등록한 소켓의 api 결과를 확인하기 위해서 OVERLLAPED 구조체가 필요하다.
+	
 
-		OVERLAPPED overlapped;
-		ZeroMemory(&overlapped, sizeof(overlapped));
+		// recv 등록
+		// IOCP에 등록한 소켓의 api 결과를 확인하기 위해서 OVERLLAPED 구조체가 필요하다.
+		// 해제 대신 재사용
+		// 따로 메모리 관리 할 필요가 있음
+		overlapped = new OVERLAPPED;
+		ZeroMemory(overlapped, sizeof(OVERLAPPED));
 
 
 		// Recv를 받기위한 버퍼길이 + 버퍼포인터
-		CHAR recvBuffer[100] = {0};
+		// 해제 대신 재사용
+		// 따로 메모리 관리 할 필요가 있음
+		recvBuffer = new char[100];
 		WSABUF wsaBuf;
 		wsaBuf.buf = recvBuffer;
-		wsaBuf.len = sizeof(recvBuffer);
+		wsaBuf.len = 100;
 
 
 		// dwBufferCount : The number of WSABUF structures
 		DWORD numberOfBytesRecvd = 0;
 		DWORD flags = 0;
-		WSARecv(clientSocket, &wsaBuf, 1, &numberOfBytesRecvd, &flags, &overlapped, nullptr);
+		WSARecv(clientSocket, &wsaBuf, 1, &numberOfBytesRecvd, &flags, overlapped, nullptr);
+		// ^^^ I/O request
 
-		DWORD numberOfBytesTransferred = 0;
-		OVERLAPPED* poverlapped = nullptr;
-		SOCKET* completionKey = nullptr;
-		BOOL ret = GetQueuedCompletionStatus(HIOCP, &numberOfBytesTransferred, (PULONG_PTR)&completionKey, &poverlapped, INFINITE);
-		if (ret == FALSE || numberOfBytesTransferred == 0)
-		{
-			// 연결 문제 있음
-			 break;
+
+		recvDispatcher(HIOCP);
+		while (true)
+		{ 
 		}
-		else
-		{
-			
-			struct packets::characterPhysInfo* packetoffset = reinterpret_cast<struct packets::characterPhysInfo*>(recvBuffer);
-			std::cout << "Location" << " : " <<
-			packetoffset->Location.X << ", " <<
-			packetoffset->Location.Y << ", " <<
-			packetoffset->Location.Z << std::endl;
-			std::cout << "Rotation" << " : " <<
-			packetoffset->Rotation.Pitch << ", " <<
-			packetoffset->Rotation.Yaw << ", " <<
-			packetoffset->Rotation.Roll << std::endl;
-			std::cout << "Velocity" << " : " <<
-			packetoffset->Velocity.X << ", " <<
-			packetoffset->Velocity.Y << ", " <<
-			packetoffset->Velocity.Z << std::endl;
-		}
-	}
 
 	// send
 	//while (true)
