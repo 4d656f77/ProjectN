@@ -7,6 +7,7 @@
 > - [Precompiled Headers](#precompiled-headers)
 > - [I/O Completion Ports](#i/o-completion-ports)
 > - [Packet Serialization](#Packet-Serialization)
+> - [Open Database Connectivity](#Open-Database-Connectivity)
 
 # Precompiled Headers
 
@@ -61,3 +62,118 @@
 > > 단순한 만큼 직렬화에 대한 클럭 소모가 없다.
 > > 
 > > 클라이언트를 UE4를 이용해서 만들었기 때문에 간단하게 패킷 직렬화를 했지만, 다른 자료형을 갖는 플렛폼과 언어를 사용할 시 이와 같은 방법은 사용하기에 적합하지 않다.
+
+# Open Database Connectivity
+
+> ODBC : 프로세스가 다양한 데이터베이스에 접근할 수 있도록 해주는  C 인터페이스 
+> 
+> > ```cpp
+> > // Open Database Connectivity(ODBC)
+> > 
+> > // Master include file for Windows applications
+> > #include <Windows.h>
+> > 
+> > // This file defines the types used in ODBC
+> > #include <sqltypes.h>
+> > 
+> > //  This is the the main include for ODBC Core functions.
+> > #include <sql.h>
+> > 
+> > // This is the include for applications using the Microsoft SQL Extensions
+> > #include <sqlext.h>
+> > 
+> > #include <iostream>
+> > 
+> > int main()
+> > {
+> > 	
+> > 	// typedef SQLHANDLE
+> > 	// ODBC 환경 핸들
+> > 	SQLHENV henv;
+> > 	
+> > 	// 환경 핸들 할당하기
+> > 	// parameters -> typedef short SQLSMALLINT, SQLHANDLE, SQLHANDLE*
+> > 	// return - > SQL_SUCCESS, SQL_SUCCESS_WITH_INFO, SQL_INVALID_HANDLE, or SQL_ERROR.
+> > 	SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &henv);
+> > 	if (ret == SQL_ERROR || ret == SQL_INVALID_HANDLE)
+> > 	{
+> > 		std::wcout << L"henv : SQLAllocHandle - SQL_INVALID_HANDLE or SQL_ERROR.\n";
+> > 	}
+> > 
+> > 	// ODBC 버전 설정
+> > 	// parameters - > SQLHENV, SQLINTEGER, SQLPOINTER, SQLINTEGER
+> > 	// return - > SQL_SUCCESS, SQL_SUCCESS_WITH_INFO, SQL_ERROR, or SQL_INVALID_HANDLE.
+> > 	ret = SQLSetEnvAttr(henv, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
+> > 	if (ret == SQL_ERROR || ret == SQL_INVALID_HANDLE)
+> > 	{
+> > 		std::wcout << L"SQLSetEnvAttr - SQL_ERROR or SQL_INVALID_HANDLE\n";
+> > 	}
+> > 
+> > 	// DB 연결 핸들 설정
+> > 	SQLHDBC hdbc;
+> > 	ret = SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc);
+> > 	if (ret == SQL_ERROR || ret == SQL_INVALID_HANDLE)
+> > 	{
+> > 		std::wcout << L"hdbc : SQLAllocHandle - SQL_INVALID_HANDLE or SQL_ERROR.\n";
+> > 	}
+> > 	// 연결 문자열 만들기
+> > 	// DSN 이용해서 연결하기
+> > 	SQLWCHAR* connectionString = (SQLWCHAR*)L"DRIVER={SQL Server};SERVER=localhost, 1433;DSN=newbieDB;UID=sa;PWD=test;";
+> > 
+> > 	// DB에 연결
+> > 	// return -> SQL_SUCCESS, SQL_SUCCESS_WITH_INFO, SQL_NO_DATA, SQL_ERROR, SQL_INVALID_HANDLE, or SQL_STILL_EXECUTING.
+> > 	ret = SQLDriverConnectW(hdbc, NULL, connectionString, SQL_NTS, NULL, 0, NULL, SQL_DRIVER_COMPLETE);
+> > 	if (ret == SQL_ERROR || ret == SQL_INVALID_HANDLE || ret == SQL_STILL_EXECUTING)
+> > 	{
+> > 		std::wcout << L"SQLDriverConnectW - SQL_ERROR, SQL_INVALID_HANDLE, or SQL_STILL_EXECUTING.\n";
+> > 	}
+> > 
+> > 	// 명령문 핸들 생성
+> > 	// statement
+> > 	SQLHSTMT hstmt;
+> > 	ret = SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt);
+> > 	if (ret == SQL_ERROR || ret == SQL_INVALID_HANDLE)
+> > 	{
+> > 		std::wcout << L"hstmt : SQLAllocHandle - SQL_INVALID_HANDLE or SQL_ERROR.\n";
+> > 	}
+> > 	// SQL statement 만들고 받아오기 
+> > 	SQLWCHAR statementText[] = L"SELECT * FROM Users";
+> > 	ret = SQLExecDirectW(hstmt, statementText, SQL_NTS);
+> > 
+> > 	// 결과 출력
+> > 	if (ret == SQL_SUCCESS || ret == SQL_SUCCESS_WITH_INFO)
+> > 	{
+> > 		SQLINTEGER ID;
+> > 		SQLWCHAR Password[50];
+> > 		while (SQLFetch(hstmt) == SQL_SUCCESS)
+> > 		{
+> > 			SQLGetData(hstmt, 1, SQL_C_LONG, &ID, sizeof(ID), NULL);
+> > 			SQLGetData(hstmt, 2, SQL_C_WCHAR, Password, 50, NULL);
+> > 			std::wcout << L"ID : " << ID << L"| Password : " << Password << L"\n";
+> > 		}
+> > 	}
+> > 
+> > 	// 명령문 핸들 해제하기
+> > 	if (hstmt) {
+> > 		SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+> > 		hstmt = NULL;
+> > 	}
+> > 	// DB 연결 해제, 핸들 해제하기
+> > 	if (hdbc) {
+> > 		SQLDisconnect(hdbc);
+> > 		SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
+> > 		hdbc = NULL;
+> > 	}
+> > 	// 환경 핸들 해제하기
+> > 	if (henv)
+> > 	{
+> > 		SQLFreeHandle(SQL_HANDLE_ENV, henv);
+> > 		henv = NULL;
+> > 	}
+> > 	return 0;
+> > }
+> > ```
+> > 
+> > 코드를 보면 핸들을 해제하는 경우가 많다. RAII를 적용해서 객체로 설계하면 리소스 해제를 까먹지 않고 할 수 있을 것 같다.
+> > 
+> > 큰 흐름에서 DB사용은 서버의 수명하고 일치한다. 그래서 처음 서버가 시작할 때 리소스(핸들)을 받고, 서버를 종료하면 같이 리소스(핸들)을 반환하는 것이 흐름에 맞을 것 같다.
