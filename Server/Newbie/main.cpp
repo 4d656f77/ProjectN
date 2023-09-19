@@ -17,14 +17,16 @@ BOOL AssociateDeviceWithCompletionPort(HANDLE hExistingCompletionPort, HANDLE hF
 }
 
 // 스레드들이 실행할 함수
-void recvDispatcher(HANDLE HIOCP)
+// unsigned ( __stdcall *start_address )( void * )
+// unsigned __stdcall WorkerThreadFunc(LPVOID lpParam)
+unsigned __stdcall  recvDispatcher(LPVOID lpParam)
 {
 	while (true)
 	{
 		DWORD numberOfBytesTransferred = 0;
 		OVERLAPPED* poverlapped = nullptr;
 		SOCKET* completionKey = nullptr;
-		BOOL ret = GetQueuedCompletionStatus(HIOCP, &numberOfBytesTransferred, (PULONG_PTR)&completionKey, &poverlapped, INFINITE);
+		BOOL ret = GetQueuedCompletionStatus(*((HANDLE*)lpParam), &numberOfBytesTransferred, (PULONG_PTR)&completionKey, &poverlapped, INFINITE);
 		if (ret == FALSE || numberOfBytesTransferred == 0)
 		{
 			// 연결 문제 있음
@@ -58,6 +60,7 @@ void recvDispatcher(HANDLE HIOCP)
 
 		WSARecv(*completionKey, &wsaBuf, 1, &numberOfBytesRecvd, &flags, poverlapped, nullptr);
 	}
+	return 0;
 }
 
 
@@ -134,6 +137,21 @@ int main()
 		std::cout << "accept failed with error: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
 		WSACleanup();
+		return 1; 
+	}
+	// 네이글 알고리즘 끄기
+	// 네이글 알고리즘을 사용하는 기준은 trade off이다.
+	// 보낼 데이터가 1Byte인데 100번을 보내게 된다면
+	// 패킷의 헤더의 크기가 더크므로 비효율적이다.
+	// 모아서 보내게 된다면 데이터 흐름은 효율적인데 반응성(자주 보내지 않는다.)은 떨어지게 된다.
+	BOOL bOptVal = FALSE;
+	int bOptLen = sizeof(BOOL);
+	iResult = setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, (char*)&bOptVal, bOptLen);
+	if (iResult == SOCKET_ERROR)
+	{
+		std::cout << "setsockopt for TCP_NODELAY failed with error : " << WSAGetLastError() << std::endl;
+		closesocket(listenSocket);
+		WSACleanup();
 		return 1;
 	}
 
@@ -173,8 +191,13 @@ int main()
 		WSARecv(clientSocket, &wsaBuf, 1, &numberOfBytesRecvd, &flags, overlapped, nullptr);
 		// ^^^ I/O request
 
-
-		recvDispatcher(HIOCP);
+		// workerthread 생성
+		for (int i = 0; i < 8; ++i)
+		{
+			unsigned int ThreadId;
+			HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, recvDispatcher, &HIOCP, 0, &ThreadId);
+		}
+		//recvDispatcher(HIOCP);
 		while (true)
 		{ 
 		}

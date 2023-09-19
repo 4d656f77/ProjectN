@@ -3,7 +3,7 @@
 namespace packets
 {
 	// 캐릭터 물리 정보
-	struct characterPhysInfo
+	typedef struct characterPhysInfo
 	{
 		struct Location
 		{
