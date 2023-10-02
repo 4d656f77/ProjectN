@@ -1,5 +1,4 @@
 #include "pch.h"
-
 // 임시 글로벌 변수
 CHAR* recvBuffer;
 OVERLAPPED* overlapped;
@@ -36,15 +35,15 @@ unsigned __stdcall  recvDispatcher(LPVOID lpParam)
 		{
 
 			struct packets::characterPhysInfo* packetoffset = reinterpret_cast<struct packets::characterPhysInfo*>(recvBuffer);
-			std::cout << "Location" << " : " <<
+			std::wcout << L"Location" << " : " <<
 				packetoffset->Location.X << ", " <<
 				packetoffset->Location.Y << ", " <<
 				packetoffset->Location.Z << std::endl;
-			std::cout << "Rotation" << " : " <<
+			std::wcout << L"Rotation" << " : " <<
 				packetoffset->Rotation.Pitch << ", " <<
 				packetoffset->Rotation.Yaw << ", " <<
 				packetoffset->Rotation.Roll << std::endl;
-			std::cout << "Velocity" << " : " <<
+			std::wcout << L"Velocity" << " : " <<
 				packetoffset->Velocity.X << ", " <<
 				packetoffset->Velocity.Y << ", " <<
 				packetoffset->Velocity.Z << std::endl;
@@ -66,6 +65,10 @@ unsigned __stdcall  recvDispatcher(LPVOID lpParam)
 
 int main()
 {
+	DB database;
+	std::wcout << L"database state : " << database.getState() << std::endl;
+	SQLWCHAR statementText[] = L"SELECT * FROM Users";
+	database.requestQuery(statementText);
 	WSADATA wsaData;
 
 
@@ -75,7 +78,7 @@ int main()
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0)
 	{
-		std::cout << "WSAStartup failed : " << iResult << std::endl;
+		std::wcout << L"WSAStartup failed : " << iResult << std::endl;
 		return 1;
 	}
 
@@ -91,7 +94,7 @@ int main()
 	SOCKET listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (listenSocket == INVALID_SOCKET)
 	{
-		std::cout << "Error at socket(): " << WSAGetLastError() << std::endl;
+		std::wcout << L"Error at socket(): " << WSAGetLastError() << std::endl;
 		WSACleanup();
 		return 1;
 	}
@@ -99,7 +102,7 @@ int main()
 	iResult = bind(listenSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));
 	if (iResult == SOCKET_ERROR)
 	{
-		std::cout << "bind failed with error: " << WSAGetLastError() << std::endl;
+		std::wcout << L"bind failed with error: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
 		WSACleanup();
 		return 1;
@@ -108,7 +111,7 @@ int main()
 	iResult = listen(listenSocket, SOMAXCONN);
 	if (iResult == SOCKET_ERROR)
 	{
-		std::cout << "listen failed with error: " << WSAGetLastError() << std::endl;
+		std::wcout << L"listen failed with error: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
 		WSACleanup();
 		return 1;
@@ -134,7 +137,7 @@ int main()
 	SOCKET clientSocket = accept(listenSocket, (sockaddr*)&clientAddr, &clientAddrLen);
 	if (clientSocket == INVALID_SOCKET)
 	{
-		std::cout << "accept failed with error: " << WSAGetLastError() << std::endl;
+		std::wcout << L"accept failed with error: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
 		WSACleanup();
 		return 1; 
@@ -149,7 +152,7 @@ int main()
 	iResult = setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, (char*)&bOptVal, bOptLen);
 	if (iResult == SOCKET_ERROR)
 	{
-		std::cout << "setsockopt for TCP_NODELAY failed with error : " << WSAGetLastError() << std::endl;
+		std::wcout << L"setsockopt for TCP_NODELAY failed with error : " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
 		WSACleanup();
 		return 1;
@@ -159,7 +162,7 @@ int main()
 	
 	if (AssociateDeviceWithCompletionPort(HIOCP, (HANDLE)clientSocket, (ULONG_PTR)&clientSocket) == false)
 	{
-		std::cout << "AssociateDeviceWithCompletionPort failed with error: " << WSAGetLastError() << std::endl;
+		std::wcout << L"AssociateDeviceWithCompletionPort failed with error: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
 		closesocket(clientSocket);
 		WSACleanup();
@@ -228,7 +231,7 @@ int main()
 	//	//BOOL ret = GetQueuedCompletionStatus(HIOCP, &numberOfBytesTransferred, &completionKey, &poverlapped, INFINITE);
 	//	//// 실제로 전송된 바이트가 아니라 send request에 대한 바이트다.
 	//	//{
-	//	//	std::cout << "전송 바이트 : " << numberOfBytesTransferred << std::endl;
+	//	//	std::wcout << L"전송 바이트 : " << numberOfBytesTransferred << std::endl;
 	//	//}
 	//	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

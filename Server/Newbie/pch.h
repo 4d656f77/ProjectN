@@ -29,9 +29,11 @@
 #pragma comment(lib, "ws2_32.lib")
 
 #include "packets.h"
+#include "DB.h"
 
 #include <process.h>
 #include <vector>
+#include <string>
 #include <iostream>
 #include <thread>
 #include <chrono>
