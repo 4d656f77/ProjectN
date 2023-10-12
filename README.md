@@ -187,30 +187,30 @@
 > > class DB
 > > {
 > > public:
-> > 	DB();
-> > 	~DB();
-> > 	// 초기화 실패시 -1
-> > 	int init();
-> > 	// 쿼리 요청
-> > 	void requestQuery(SQLWCHAR query[]);
-> > 	UINT32 getState() { return state; };
+> >     DB();
+> >     ~DB();
+> >     // 초기화 실패시 -1
+> >     int init();
+> >     // 쿼리 요청
+> >     void requestQuery(SQLWCHAR query[]);
+> >     UINT32 getState() { return state; };
 > > 
 > > private:
-> > 	SQLHENV henv = nullptr;
-> > 	SQLHDBC hdbc = nullptr;
-> > 	SQLHSTMT hstmt = nullptr;
-> > 	
+> >     SQLHENV henv = nullptr;
+> >     SQLHDBC hdbc = nullptr;
+> >     SQLHSTMT hstmt = nullptr;
 > > 
-> > 	// state table
-> > 	enum : UINT32
-> > 	{
-> > 		DBOFF,
-> > 		DBON,
-> > 		DBERROR,
 > > 
-> > 	};
-> > 	// no thread safety
-> > 	UINT32 state = DBOFF;
+> >     // state table
+> >     enum : UINT32
+> >     {
+> >         DBOFF,
+> >         DBON,
+> >         DBERROR,
+> > 
+> >     };
+> >     // no thread safety
+> >     UINT32 state = DBOFF;
 > > };
 > > ```
 > > 
@@ -219,5 +219,7 @@
 > > 만약 DB에 접근할 수 없는 경우 심각한 장애가 발생한 것이므로 게임 서버는 종료해야 한다.
 > > 
 > > 한 리소스에 다중 접근하기 때문에 thread safety하게 만들어야 한다.
+> > 
+> > 
 > > 
 > > 1차 목표로 mutex를 사용해서 개발을 할 예정이다.
