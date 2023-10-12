@@ -12,7 +12,7 @@
 
 # Precompiled Headers
 
-> ![](./images/precompiled%20headers_pchf.png)
+> ![precompiled headers_pchf](./images/precompiled%20headers_pchf.png)
 > 
 > 설정을 잘 완료 했으면 프로젝트 빌드 부산물 중에서 미리컴파일된헤더 파일이 생긴다.
 
@@ -36,10 +36,10 @@
 > 
 > 3. 실제로 확인해 보기
 > 
-> <img title="" src="./images/newbieCvTrace.png" alt="newbieCvTrace" width="836">
+> ![newbieCvTrace](./images/newbieCvTrace.png)
 > 
-> > 코드 흐름
-> > 
+> 코드 흐름
+> 
 > > 1. 클라이언트로 연결을 하고 Recv를 한다.
 > > 
 > > 2. 워커 스레드 8개를 생성한다.
@@ -219,7 +219,5 @@
 > > 만약 DB에 접근할 수 없는 경우 심각한 장애가 발생한 것이므로 게임 서버는 종료해야 한다.
 > > 
 > > 한 리소스에 다중 접근하기 때문에 thread safety하게 만들어야 한다.
-> > 
-> > 
 > > 
 > > 1차 목표로 mutex를 사용해서 개발을 할 예정이다.
