@@ -12,7 +12,7 @@
 
 # Precompiled Headers
 
-> ![precompiled headers_pchf](./images/precompiled%20headers_pchf.png)
+> ![precompiled headers_pchf](https://github.com/4d656f77/ProjectN/blob/master/images/precompiled%20headers_pchf.png?raw=true)
 > 
 > 설정을 잘 완료 했으면 프로젝트 빌드 부산물 중에서 미리컴파일된헤더 파일이 생긴다.
 
@@ -36,7 +36,7 @@
 > 
 > 3. 실제로 확인해 보기
 > 
-> ![newbieCvTrace](./images/newbieCvTrace.png)
+> <img src="https://github.com/4d656f77/ProjectN/blob/master/images/newbieCvTrace.png?raw=true" title="" alt="newbieCvTrace" width="784">
 > 
 > 코드 흐름
 > 
