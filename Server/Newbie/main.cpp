@@ -3,18 +3,6 @@
 CHAR* recvBuffer;
 OVERLAPPED* overlapped;
 
-HANDLE CreateNewIoCompletionPort(DWORD dwNumberOfConcurrentThreads)
-{
-	return CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, dwNumberOfConcurrentThreads);
-}
-
-BOOL AssociateDeviceWithCompletionPort(HANDLE hExistingCompletionPort, HANDLE hFileHandle, ULONG_PTR ulpCompletionKey)
-{
-	HANDLE _HIOCP = CreateIoCompletionPort(hFileHandle, hExistingCompletionPort, ulpCompletionKey, 0);
-
-	return (_HIOCP == hExistingCompletionPort);
-}
-
 // 스레드들이 실행할 함수
 // unsigned ( __stdcall *start_address )( void * )
 // unsigned __stdcall WorkerThreadFunc(LPVOID lpParam)
@@ -108,6 +96,7 @@ int main()
 		return 1;
 	}
 	
+	
 	iResult = listen(listenSocket, SOMAXCONN);
 	if (iResult == SOCKET_ERROR)
 	{
@@ -118,11 +107,12 @@ int main()
 	}
 
 	// 유저 접속 확인
-
+	// 메인스레드는 반복하면서 유저를 받는다.
 
 	// IOCP 생성
-	HANDLE HIOCP = CreateNewIoCompletionPort(0);
+	IOCP iocp;
 
+	// 세션 생성
 	// 클라이언트 정보
 	SOCKADDR_IN clientAddr;
 	ZeroMemory(&clientAddr, sizeof(clientAddr));
@@ -160,7 +150,7 @@ int main()
 
 	// IOCP에 클라이언트 소켓 등록
 	
-	if (AssociateDeviceWithCompletionPort(HIOCP, (HANDLE)clientSocket, (ULONG_PTR)&clientSocket) == false)
+	if (iocp.AssociateDeviceWithCompletionPort(iocp.getHendle(), (HANDLE)clientSocket, (ULONG_PTR)&clientSocket) == false)
 	{
 		std::wcout << L"AssociateDeviceWithCompletionPort failed with error: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
@@ -171,39 +161,39 @@ int main()
 
 	
 
-		// recv 등록
-		// IOCP에 등록한 소켓의 api 결과를 확인하기 위해서 OVERLLAPED 구조체가 필요하다.
-		// 해제 대신 재사용
-		// 따로 메모리 관리 할 필요가 있음
-		overlapped = new OVERLAPPED;
-		ZeroMemory(overlapped, sizeof(OVERLAPPED));
+	// recv 등록
+	// IOCP에 등록한 소켓의 api 결과를 확인하기 위해서 OVERLLAPED 구조체가 필요하다.
+	// 해제 대신 재사용
+	// 따로 메모리 관리 할 필요가 있음
+	overlapped = new OVERLAPPED;
+	ZeroMemory(overlapped, sizeof(OVERLAPPED));
 
 
-		// Recv를 받기위한 버퍼길이 + 버퍼포인터
-		// 해제 대신 재사용
-		// 따로 메모리 관리 할 필요가 있음
-		recvBuffer = new char[100];
-		WSABUF wsaBuf;
-		wsaBuf.buf = recvBuffer;
-		wsaBuf.len = 100;
+	// Recv를 받기위한 버퍼길이 + 버퍼포인터
+	// 해제 대신 재사용
+	// 따로 메모리 관리 할 필요가 있음
+	recvBuffer = new char[100];
+	WSABUF wsaBuf;
+	wsaBuf.buf = recvBuffer;
+	wsaBuf.len = 100;
 
 
-		// dwBufferCount : The number of WSABUF structures
-		DWORD numberOfBytesRecvd = 0;
-		DWORD flags = 0;
-		WSARecv(clientSocket, &wsaBuf, 1, &numberOfBytesRecvd, &flags, overlapped, nullptr);
-		// ^^^ I/O request
+	// dwBufferCount : The number of WSABUF structures
+	DWORD numberOfBytesRecvd = 0;
+	DWORD flags = 0;
+	WSARecv(clientSocket, &wsaBuf, 1, &numberOfBytesRecvd, &flags, overlapped, nullptr);
+	// ^^^ I/O request
 
-		// workerthread 생성
-		for (int i = 0; i < 8; ++i)
-		{
-			unsigned int ThreadId;
-			HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, recvDispatcher, &HIOCP, 0, &ThreadId);
-		}
-		//recvDispatcher(HIOCP);
-		while (true)
-		{ 
-		}
+	// workerthread 생성
+	for (int i = 0; i < 8; ++i)
+	{
+		unsigned int ThreadId;
+		HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, recvDispatcher, iocp.getHendle(), 0, &ThreadId);
+	}
+	//recvDispatcher(HIOCP);
+	while (true)
+	{ 
+	}
 
 	// send
 	//while (true)
@@ -236,6 +226,5 @@ int main()
 	//	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
 	//}
-	CloseHandle(HIOCP);
 	return 0;
 }
