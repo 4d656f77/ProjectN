@@ -1,7 +1,6 @@
 #include "pch.h"
 // 임시 글로벌 변수
-CHAR* recvBuffer;
-OVERLAPPED* overlapped;
+sessions SessionManager;
 
 // 스레드들이 실행할 함수
 // unsigned ( __stdcall *start_address )( void * )
@@ -12,6 +11,7 @@ unsigned __stdcall  recvDispatcher(LPVOID lpParam)
 	{
 		DWORD numberOfBytesTransferred = 0;
 		OVERLAPPED* poverlapped = nullptr;
+		// 세션 키
 		SOCKET* completionKey = nullptr;
 		BOOL ret = GetQueuedCompletionStatus(*((HANDLE*)lpParam), &numberOfBytesTransferred, (PULONG_PTR)&completionKey, &poverlapped, INFINITE);
 		if (ret == FALSE || numberOfBytesTransferred == 0)
@@ -21,8 +21,11 @@ unsigned __stdcall  recvDispatcher(LPVOID lpParam)
 		}
 		else
 		{
+		
+			std::shared_ptr<session> curSession = SessionManager.getSession(*completionKey);
 
-			struct packets::characterPhysInfo* packetoffset = reinterpret_cast<struct packets::characterPhysInfo*>(recvBuffer);
+
+			struct packets::characterPhysInfo* packetoffset = reinterpret_cast<struct packets::characterPhysInfo*>(curSession->wsaBuf.buf);
 			std::wcout << L"Location" << " : " <<
 				packetoffset->Location.X << ", " <<
 				packetoffset->Location.Y << ", " <<
@@ -35,17 +38,15 @@ unsigned __stdcall  recvDispatcher(LPVOID lpParam)
 				packetoffset->Velocity.X << ", " <<
 				packetoffset->Velocity.Y << ", " <<
 				packetoffset->Velocity.Z << std::endl;
+			
+			
+			
+			curSession->clearOverlapped(1);
+			curSession->clearRecvBuf();
+
+			WSARecv(*completionKey, &curSession->wsaBuf, 1, &curSession->numberOfBytesRecvd, &curSession->flags, (OVERLAPPED*)&curSession->overlapped->overlapped, nullptr);
+
 		}
-
-		WSABUF wsaBuf;
-		wsaBuf.buf = recvBuffer;
-		wsaBuf.len = 100;
-		DWORD numberOfBytesRecvd = 0;
-		DWORD flags = 0;
-
-		ZeroMemory(poverlapped, sizeof(OVERLAPPED));
-
-		WSARecv(*completionKey, &wsaBuf, 1, &numberOfBytesRecvd, &flags, poverlapped, nullptr);
 	}
 	return 0;
 }
@@ -121,24 +122,22 @@ int main()
 		HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, recvDispatcher, iocp.getHendle(), 0, &ThreadId);
 	}
 
-	sessions sessionlist;
+	
+
 	while (true)
 	{
 	
-
+	// 빈 새션 생성
+	std::shared_ptr<session> _newSession = std::make_shared<session>();
 	
-	SOCKADDR_IN clientAddr;
-	ZeroMemory(&clientAddr, sizeof(clientAddr));
-	int clientAddrLen = sizeof(clientAddr);
+	// 소켓 정보 초기화
+	ZeroMemory(&_newSession->clientaddr, sizeof(_newSession->clientaddr));
+	_newSession->clientAddrLen = sizeof(_newSession->clientaddr);
+		
 
-	//							구조체 차이점
-	//		SOCKADDR_IN								SOCKADDR
-	//     USHORT sin_port;  2BYTE	 			CHAR sa_data[14];
-	//     IN_ADDR sin_addr; 4BYTE					
-	//     CHAR sin_zero[8]; 8BYTE					
-
-	SOCKET clientSocket = accept(listenSocket, (sockaddr*)&clientAddr, &clientAddrLen);
-	if (clientSocket == INVALID_SOCKET)
+	_newSession->clientSocket = accept(listenSocket, (sockaddr*)&_newSession->clientaddr, &_newSession->clientAddrLen);
+	// 소켓 에러로 다음 분기로 넘어갈 때 newSeesion 소멸자 호출?
+	if (_newSession->clientSocket == INVALID_SOCKET)
 	{
 		std::wcout << L"accept failed with error: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
@@ -146,12 +145,7 @@ int main()
 		continue;
 	}
 
-	// 세션 생성
-	std::shared_ptr<session> _newSession = std::make_shared<session>();
-	// 클라이언트 정보 추가
-	sessionlist.addSession(clientSocket, std::move(_newSession));
-	// _newSession => nullptr
-
+	
 	// overlapped 확장 필요 send인지 recv인지 분리
 	
 	// 네이글 알고리즘 끄기
@@ -159,25 +153,25 @@ int main()
 	// 보낼 데이터가 1Byte인데 100번을 보내게 된다면
 	// 패킷의 헤더의 크기가 더크므로 비효율적이다.
 	// 모아서 보내게 된다면 데이터 흐름은 효율적인데 반응성(자주 보내지 않는다.)은 떨어지게 된다.
-	BOOL bOptVal = FALSE;
-	int bOptLen = sizeof(BOOL);
-	iResult = setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, (char*)&bOptVal, bOptLen);
-	if (iResult == SOCKET_ERROR)
-	{
-		std::wcout << L"setsockopt for TCP_NODELAY failed with error : " << WSAGetLastError() << std::endl;
-		closesocket(clientSocket);
-		closesocket(listenSocket);
-		WSACleanup();
-		return 1;
-	}
+	//BOOL bOptVal = FALSE;
+	//int bOptLen = sizeof(BOOL);
+	//iResult = setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, (char*)&bOptVal, bOptLen);
+	//if (iResult == SOCKET_ERROR)
+	//{
+	//	std::wcout << L"setsockopt for TCP_NODELAY failed with error : " << WSAGetLastError() << std::endl;
+	//	closesocket(clientSocket);
+	//	closesocket(listenSocket);
+	//	WSACleanup();
+	//	return 1;
+	//}
 
 	// IOCP에 클라이언트 소켓 등록
 	
-	if (iocp.AssociateDeviceWithCompletionPort(iocp.getHendle(), (HANDLE)clientSocket, (ULONG_PTR)&clientSocket) == false)
+	if (iocp.AssociateDeviceWithCompletionPort(*iocp.getHendle(), (HANDLE)_newSession->clientSocket, (ULONG_PTR)&_newSession->clientSocket) == false)
 	{
-		std::wcout << L"AssociateDeviceWithCompletionPort failed with error: " << WSAGetLastError() << std::endl;
+		std::wcout << L"AssociateDeviceWithCompletionPort failed with error" << std::endl;
 		closesocket(listenSocket);
-		closesocket(clientSocket);
+		closesocket(_newSession->clientSocket);
 		WSACleanup();
 		return 1;
 	}
@@ -209,32 +203,20 @@ int main()
 	//	//}
 
 
-	// 클라이언트 초기화 했는지 확인 실패시 세션 클리어
 	// recv는 recvDispatcher가 실행해 준다
 	
-	//// IOCP에 등록한 소켓의 api 결과를 확인하기 위해서 OVERLLAPED 구조체가 필요하다.
-	//// 해제 대신 재사용
-	//// 따로 메모리 관리 할 필요가 있음
-	//overlapped = new OVERLAPPED;
-	//ZeroMemory(overlapped, sizeof(OVERLAPPED));
-
-
-	//// Recv를 받기위한 버퍼길이 + 버퍼포인터
-	//// 해제 대신 재사용
-	//// 따로 메모리 관리 할 필요가 있음
-	//recvBuffer = new char[100];
-	//WSABUF wsaBuf;
-	//wsaBuf.buf = recvBuffer;
-	//wsaBuf.len = 100;
-
+	//// OVERLLAPED 구조체 클리어 RECV => 1
+	_newSession->clearOverlapped(1);
+	
+	//// Recv를 받기위한 버퍼길이 + 버퍼포인터 클리어
+	_newSession->clearRecvBuf();
 
 	//// dwBufferCount : The number of WSABUF structures
-	//DWORD numberOfBytesRecvd = 0;
-	//DWORD flags = 0;
-	//WSARecv(clientSocket, &wsaBuf, 1, &numberOfBytesRecvd, &flags, overlapped, nullptr);
+	WSARecv(_newSession->clientSocket, &_newSession->wsaBuf, 1, &_newSession->numberOfBytesRecvd, &_newSession->flags, (OVERLAPPED*)&_newSession->overlapped->overlapped, nullptr);
 	//// ^^^ I/O request
 
-
+	// 세션 추가
+	SessionManager.addSession(_newSession->clientSocket, std::move(_newSession));
 
 	}
 

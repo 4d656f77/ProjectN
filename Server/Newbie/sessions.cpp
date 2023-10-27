@@ -4,8 +4,9 @@
 #define MAXBUFFERSIZE 1000
 session::session()
 {
-	overlapped = new OVERLAPPED;
-	recvBuffer = new char[MAXBUFFERSIZE];
+	overlapped = new OverlappedEx;
+	wsaBuf.buf = new char[MAXBUFFERSIZE];
+	wsaBuf.len = MAXBUFFERSIZE;
 	sendBuffer = new char[MAXBUFFERSIZE];
 }
 
@@ -13,9 +14,23 @@ session::~session()
 {
 	closesocket(clientSocket);
 	delete overlapped;
-	delete[] recvBuffer;
+	delete[] wsaBuf.buf;
 	delete[] sendBuffer;
 	
+}
+
+void session::clearRecvBuf()
+{
+	ZeroMemory(wsaBuf.buf, MAXBUFFERSIZE * sizeof(CHAR));
+	numberOfBytesRecvd = 0;
+	flags = 0;
+}
+
+void session::clearOverlapped(unsigned int type)
+{
+	
+	ZeroMemory(&overlapped->overlapped, sizeof(OVERLAPPED));
+	overlapped->type = type;
 }
 
 
@@ -52,6 +67,11 @@ void sessions::delSession(SOCKET _socket)
 		// 참조 카운트 제거
 		sessionList.erase(iter);
 	}
+}
+
+std::shared_ptr<session> sessions::getSession(SOCKET _socket)
+{
+	return std::shared_ptr<session>(sessionList[_socket]);
 }
 
 

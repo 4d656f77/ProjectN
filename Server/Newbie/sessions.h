@@ -4,8 +4,9 @@
 
 struct OverlappedEx
 {
+
 	OVERLAPPED overlapped = {};
-	int type = 0; // read, write, accept, connect ...
+	unsigned int type = 0; // recv = 1;
 };
 
 struct session
@@ -16,12 +17,17 @@ struct session
 	SOCKET clientSocket = INVALID_SOCKET;
 
 	// IOCP
-	OVERLAPPED* overlapped = nullptr;
-	CHAR* recvBuffer = nullptr;
+	OverlappedEx* overlapped = nullptr;
+	WSABUF wsaBuf = { 0 };
+	DWORD numberOfBytesRecvd = 0;
+	DWORD flags = 0;
+
 	CHAR* sendBuffer = nullptr;
 	
 	session();
 	~session();
+	void clearRecvBuf();
+	void clearOverlapped(unsigned int type);
 };
 
 class sessions
@@ -36,6 +42,8 @@ public:
 	void addSession(SOCKET _socket, std::shared_ptr<session>&& _session);
 	// 货记 力芭
 	void delSession(SOCKET _socket);
+	// 货记 啊廉坷扁
+	std::shared_ptr<session> getSession(SOCKET _socket);
 
 	// broadcast
 
