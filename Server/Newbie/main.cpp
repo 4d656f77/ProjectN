@@ -53,13 +53,14 @@ unsigned __stdcall  recvDispatcher(LPVOID lpParam)
 
 int main()
 {
+	// 유저 로그인 정보 캐싱
 	DB database;
 	std::wcout << L"database state : " << database.getState() << std::endl;
 	SQLWCHAR statementText[] = L"SELECT * FROM Users";
 	database.requestQuery(statementText);
+	
+	
 	WSADATA wsaData;
-
-
 	int iResult;
 	// The WSAStartup function initiates use of the Winsock DLL by a process.
 	// 2.2 버전 사용
@@ -112,8 +113,20 @@ int main()
 	// IOCP 생성
 	IOCP iocp;
 
-	// 세션 생성
-	// 클라이언트 정보
+
+	// workerthread 생성
+	for (int i = 0; i < 8; ++i)
+	{
+		unsigned int ThreadId;
+		HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, recvDispatcher, iocp.getHendle(), 0, &ThreadId);
+	}
+
+	sessions sessionlist;
+	while (true)
+	{
+	
+
+	
 	SOCKADDR_IN clientAddr;
 	ZeroMemory(&clientAddr, sizeof(clientAddr));
 	int clientAddrLen = sizeof(clientAddr);
@@ -130,8 +143,17 @@ int main()
 		std::wcout << L"accept failed with error: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
 		WSACleanup();
-		return 1; 
+		continue;
 	}
+
+	// 세션 생성
+	std::shared_ptr<session> _newSession = std::make_shared<session>();
+	// 클라이언트 정보 추가
+	sessionlist.addSession(clientSocket, std::move(_newSession));
+	// _newSession => nullptr
+
+	// overlapped 확장 필요 send인지 recv인지 분리
+	
 	// 네이글 알고리즘 끄기
 	// 네이글 알고리즘을 사용하는 기준은 trade off이다.
 	// 보낼 데이터가 1Byte인데 100번을 보내게 된다면
@@ -143,6 +165,7 @@ int main()
 	if (iResult == SOCKET_ERROR)
 	{
 		std::wcout << L"setsockopt for TCP_NODELAY failed with error : " << WSAGetLastError() << std::endl;
+		closesocket(clientSocket);
 		closesocket(listenSocket);
 		WSACleanup();
 		return 1;
@@ -160,49 +183,10 @@ int main()
 	}
 
 	
-
-	// recv 등록
-	// IOCP에 등록한 소켓의 api 결과를 확인하기 위해서 OVERLLAPED 구조체가 필요하다.
-	// 해제 대신 재사용
-	// 따로 메모리 관리 할 필요가 있음
-	overlapped = new OVERLAPPED;
-	ZeroMemory(overlapped, sizeof(OVERLAPPED));
-
-
-	// Recv를 받기위한 버퍼길이 + 버퍼포인터
-	// 해제 대신 재사용
-	// 따로 메모리 관리 할 필요가 있음
-	recvBuffer = new char[100];
-	WSABUF wsaBuf;
-	wsaBuf.buf = recvBuffer;
-	wsaBuf.len = 100;
-
-
-	// dwBufferCount : The number of WSABUF structures
-	DWORD numberOfBytesRecvd = 0;
-	DWORD flags = 0;
-	WSARecv(clientSocket, &wsaBuf, 1, &numberOfBytesRecvd, &flags, overlapped, nullptr);
-	// ^^^ I/O request
-
-	// workerthread 생성
-	for (int i = 0; i < 8; ++i)
-	{
-		unsigned int ThreadId;
-		HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, recvDispatcher, iocp.getHendle(), 0, &ThreadId);
-	}
-	//recvDispatcher(HIOCP);
-	while (true)
-	{ 
-	}
-
-	// send
-	//while (true)
-	//{
-	//	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	// send socket number << 소켓넘버 보내기
 	//	// OVERLAPPED 구조체 초기화
 	//	OVERLAPPED overlapped;
 	//	ZeroMemory(&overlapped, sizeof(overlapped));
-
 
 	//	// 보낼 버퍼 초기화, 포인터 + 길이
 	//	WCHAR sendBuffer[] = L"test";
@@ -223,8 +207,36 @@ int main()
 	//	//{
 	//	//	std::wcout << L"전송 바이트 : " << numberOfBytesTransferred << std::endl;
 	//	//}
-	//	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-	//}
+
+	// 클라이언트 초기화 했는지 확인 실패시 세션 클리어
+	// recv는 recvDispatcher가 실행해 준다
+	
+	//// IOCP에 등록한 소켓의 api 결과를 확인하기 위해서 OVERLLAPED 구조체가 필요하다.
+	//// 해제 대신 재사용
+	//// 따로 메모리 관리 할 필요가 있음
+	//overlapped = new OVERLAPPED;
+	//ZeroMemory(overlapped, sizeof(OVERLAPPED));
+
+
+	//// Recv를 받기위한 버퍼길이 + 버퍼포인터
+	//// 해제 대신 재사용
+	//// 따로 메모리 관리 할 필요가 있음
+	//recvBuffer = new char[100];
+	//WSABUF wsaBuf;
+	//wsaBuf.buf = recvBuffer;
+	//wsaBuf.len = 100;
+
+
+	//// dwBufferCount : The number of WSABUF structures
+	//DWORD numberOfBytesRecvd = 0;
+	//DWORD flags = 0;
+	//WSARecv(clientSocket, &wsaBuf, 1, &numberOfBytesRecvd, &flags, overlapped, nullptr);
+	//// ^^^ I/O request
+
+
+
+	}
+
 	return 0;
 }

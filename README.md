@@ -9,6 +9,7 @@
 > - [Packet Serialization](#Packet-Serialization)
 > - [Open Database Connectivity](#Open-Database-Connectivity)
 > - [DB Class](#DB-Class)
+> - [Sessions Class](#Sessions-Class)
 
 # Precompiled Headers
 
@@ -221,3 +222,17 @@
 > > 한 리소스에 다중 접근하기 때문에 thread safety하게 만들어야 한다.
 > > 
 > > 1차 목표로 mutex를 사용해서 개발을 할 예정이다.
+
+# Sessions Class
+
+> 클라이언트 세션 관리를 위한 클래스
+> 
+> > Sessions class의 동기화를 위해서 `std::mutex`를 사용하기로 하고 개발을 진행했다.
+> > 
+> > 고민을 해보니 세션들을 순회하거나 특정 세션을 골라서 통신해야 하는 경우가 많고, 접속시 세션을 생성하고, 종료시 세션을 제거하는 경우는 앞선 경우에 비해 비중이 낮을 것이라고 판단했다.
+> > 
+> > 그래서 `winapi`에 있는 `SRWLock`을 사용하기로 결정 했다.
+> > 
+> > 설명은 [MSDN](https://learn.microsoft.com/en-us/windows/win32/sync/slim-reader-writer--srw--locks) 에 있는데 실제로 동작하는 내부 원리가 궁금했다.
+> > 
+> > 

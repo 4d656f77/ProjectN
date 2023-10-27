@@ -10,7 +10,7 @@ public:
 	};
 	~IOCP() { CloseHandle(HIOCP); };
 
-	HANDLE getHendle(void) { return HIOCP; };
+	HANDLE* getHendle(void) { return &HIOCP; };
 
 	HANDLE CreateNewIoCompletionPort(DWORD dwNumberOfConcurrentThreads)
 	{
