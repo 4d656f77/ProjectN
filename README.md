@@ -10,6 +10,7 @@
 > - [Open Database Connectivity](#Open-Database-Connectivity)
 > - [DB Class](#DB-Class)
 > - [Sessions Class](#Sessions-Class)
+> - [SRWLock](#SRWLock)
 
 # Precompiled Headers
 
@@ -231,8 +232,44 @@
 > > 
 > > 고민을 해보니 세션들을 순회하거나 특정 세션을 골라서 통신해야 하는 경우가 많고, 접속시 세션을 생성하고, 종료시 세션을 제거하는 경우는 앞선 경우에 비해 비중이 낮을 것이라고 판단했다.
 > > 
-> > 그래서 `winapi`에 있는 `SRWLock`을 사용하기로 결정 했다.
+> > 그래서 `WinAPI`에 있는 `SRWLock`을 사용하기로 결정 했다.
 > > 
-> > 설명은 [MSDN](https://learn.microsoft.com/en-us/windows/win32/sync/slim-reader-writer--srw--locks) 에 있는데 실제로 동작하는 내부 원리가 궁금했다.
+> > 설명은 [MSDN](https://learn.microsoft.com/en-us/windows/win32/sync/slim-reader-writer--srw--locks) 에 있는데 실제로 동작하는 내부 원리가 궁금 했다.
+> > 
+> > 몇 일 동안 찾아본 결과로 다음 링크 [SRWLock](#SRWLock)를 눌러보자.
 > > 
 > > 
+> > 
+
+
+
+# SRWLock
+
+> `WinAPI`에 있는 동기화 객체
+> 
+> > 동기화를 위해서 `PVOID`에 CPU 명령어로 락을 구현 했다.
+> > 
+> > 최하위비트가 켜졌으면 어떤 스레드가 락을 획득하고 있다는 것이고, 특히 read인 경우 하위 5비트부터 개수를 카운팅하면서 얼마나 읽고 있는지 파악한다.
+> > 
+> > 락을 동작하는 함수 2개를 분석해보자.
+> > 
+> > `AcquireSRWLockExclusive`함수는 다음과 같이 작동한다.
+> > 
+> > ![AcquireSRWLockExclusive](https://github.com/4d656f77/ProjectN/blob/master/images/AcquireSRWLockExclusive.png?raw=true)
+> > 
+> > 강제로 `CY flag`를 1로 세팅해서 이미 다른 스레드가 락을 획득했다고 하자.
+> > 
+> > 어느정도 따라가다보면 다음과 같이 루프를 만나게 된다.
+> > 
+> > ![AcquireSRWLockExclusiveLoop](https://github.com/4d656f77/ProjectN/blob/master/images/AcquireSRWLockExclusiveLoop.png?raw=true)
+> > 
+> > `pause`명령어는 `spin-wait loop`의 성능 향상을 위해 사용하는데 `memory order violation` 피하게 해준다.
+> > 
+> > `x64 debug mode`에서는 114번 루프를 돌고 나서 다음과 같이 `wait`상태로 변경된다.
+> > 
+> > ![AcquireSRWLockExclusiveSystemCall](https://github.com/4d656f77/ProjectN/blob/master/images/AcquireSRWLockExclusiveSystemCall.png?raw=true)
+> > 
+> > 
+> > `ReleaseSRWLockExclusive`함수는 `wait`중인 스레드를 깨워준다.
+> > 
+> > ![ReleaseSRWLockExclusive](https://github.com/4d656f77/ProjectN/blob/master/images/ReleaseSRWLockExclusive.png?raw=true)
