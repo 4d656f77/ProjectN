@@ -2,6 +2,14 @@
 > 
 > - to study a multi-play game server
 
+
+
+
+
+
+
+
+
 > # Index
 > 
 > - [Precompiled Headers](#precompiled-headers)
@@ -11,12 +19,28 @@
 > - [DB Class](#DB-Class)
 > - [Sessions Class](#Sessions-Class)
 > - [SRWLock](#SRWLock)
+>   
+
+
+
+
+
+
 
 # Precompiled Headers
 
 > ![precompiled headers_pchf](https://github.com/4d656f77/ProjectN/blob/master/images/precompiled%20headers_pchf.png?raw=true)
 > 
 > 설정을 잘 완료 했으면 프로젝트 빌드 부산물 중에서 미리컴파일된헤더 파일이 생긴다.
+> 
+> 
+> 
+
+
+
+
+
+
 
 # I/O Completion Ports
 
@@ -50,7 +74,16 @@
 > > 
 > > 4. 다시 Recv를 한다.
 > > 
-> > 여기서 접속한 클라이언트는 1개다. IOCP의 대기 스레드 큐는 LIFO이므로 워커 스레드 중에 하나만 계속 동작하고 있다.  
+> > 여기서 접속한 클라이언트는 1개다. IOCP의 대기 스레드 큐는 LIFO이므로 워커 스레드 중에 하나만 계속 동작하고 있다. 
+> 
+> 
+> 
+
+
+
+
+
+
 
 # Packet Serialization
 
@@ -180,6 +213,15 @@
 > > 코드를 보면 핸들을 해제하는 경우가 많다. RAII를 적용해서 객체로 설계하면 리소스 해제를 까먹지 않고 할 수 있을 것 같다.
 > > 
 > > 큰 흐름에서 DB사용은 서버의 수명하고 일치한다. 그래서 처음 서버가 시작할 때 리소스(핸들)을 받고, 서버를 종료하면 같이 리소스(핸들)을 반환하는 것이 흐름에 맞을 것 같다.
+> 
+> 
+> 
+
+
+
+
+
+
 
 # DB Class
 
@@ -223,6 +265,15 @@
 > > 한 리소스에 다중 접근하기 때문에 thread safety하게 만들어야 한다.
 > > 
 > > 1차 목표로 mutex를 사용해서 개발을 할 예정이다.
+> 
+> 
+> 
+
+
+
+
+
+
 
 # Sessions Class
 
@@ -237,9 +288,13 @@
 > > 설명은 [MSDN](https://learn.microsoft.com/en-us/windows/win32/sync/slim-reader-writer--srw--locks) 에 있는데 실제로 동작하는 내부 원리가 궁금 했다.
 > > 
 > > 몇 일 동안 찾아본 결과로 다음 링크 [SRWLock](#SRWLock)를 눌러보자.
-> > 
-> > 
-> > 
+> 
+> 
+> 
+
+
+
+
 
 
 
@@ -269,7 +324,9 @@
 > > 
 > > ![AcquireSRWLockExclusiveSystemCall](https://github.com/4d656f77/ProjectN/blob/master/images/AcquireSRWLockExclusiveSystemCall.png?raw=true)
 > > 
-> > 
 > > `ReleaseSRWLockExclusive`함수는 `wait`중인 스레드를 깨워준다.
 > > 
 > > ![ReleaseSRWLockExclusive](https://github.com/4d656f77/ProjectN/blob/master/images/ReleaseSRWLockExclusive.png?raw=true)
+> 
+> 
+> 
