@@ -12,7 +12,8 @@
 > - [Open Database Connectivity](#Open-Database-Connectivity)
 > - [DB Class](#DB-Class)
 > - [Sessions Class](#Sessions-Class)
-> - [SRWLock](#SRWLock) 
+> - [SRWLock](#SRWLock)
+> - [Users Data](#Users-Data) 
 
 <br/>
 
@@ -285,3 +286,21 @@
 > > ![ReleaseSRWLockExclusive](https://github.com/4d656f77/ProjectN/blob/master/images/ReleaseSRWLockExclusive.png?raw=true)
 
 <br/>
+
+# Users Data
+
+> DB에 저장된 사용자 정보를 이용해서 플레이 초기화 과정이 필요하다.
+> 
+> 사용자 로그인 과정 설계
+> 
+> > ![LoginDiagram](https://github.com/4d656f77/ProjectN/blob/master/images/LoginDiagram.png?raw=true)
+> > 
+> > 게임 로직 서버에서 DB에 저장된 로그인 정보를 한번에 받아와서 캐싱한다.
+> > 매번 로직을 실행할 때마다 DB와 읽고 쓰는 작업을 반복하지 않고 캐싱된 정보에 저장하고 로그아웃과 일정 시간마다 저장하는 정책을 사용하면 DB에 접근하는 병목 현상을 줄일 수 있다.
+> > 
+> > ![dummyUsersTable](https://github.com/4d656f77/ProjectN/blob/master/images/dummyUsersTable.png?raw=true)
+> > 
+> > 저장된 더미 데이터를 통해서 개발할 예정이다.
+> > 
+> > 
+> > 
