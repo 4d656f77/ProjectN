@@ -74,6 +74,20 @@
 > > 단순한 만큼 직렬화에 대한 클럭 소모가 없다.
 > > 
 > > 클라이언트를 UE4를 이용해서 만들었기 때문에 간단하게 패킷 직렬화를 했지만, 다른 자료형을 갖는 플렛폼과 언어를 사용할 시 이와 같은 방법은 사용하기에 적합하지 않다.
+> 
+> 2. 구글 Protocol Buffer
+> 
+> > `Protocol Buffers are a language-neutral, platform-neutral extensible mechanism for serializing structured data`
+> > 
+> > 언어 중립적 , 플랫폼 중립적인 직렬화 메커니즘이다.
+> > 
+> > 서버-클라이언트 통신뿐만 아니라 결제 시스템 등 다른 서비스와 통신이 필요한데 플랫폼과 언어가 다를시 어떤 형식으로 보내고 받을지 고민하게 된다.
+> > 
+> > 고민에서 자유롭고 프로토콜 버퍼는 표준화된 개발을 지원한다.
+> > 
+> > 1차 목표 : 언리얼 엔진에 프로토콜 버퍼 이식
+> > 
+> > 2차 목표 : 서버에 프로토콜 버퍼 이식
 
 <br/>
 
@@ -301,6 +315,3 @@
 > > ![dummyUsersTable](https://github.com/4d656f77/ProjectN/blob/master/images/dummyUsersTable.png?raw=true)
 > > 
 > > 저장된 더미 데이터를 통해서 개발할 예정이다.
-> > 
-> > 
-> > 
