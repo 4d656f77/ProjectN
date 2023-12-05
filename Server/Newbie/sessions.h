@@ -17,7 +17,7 @@ struct session
 	SOCKET clientSocket = INVALID_SOCKET;
 
 	// IOCP
-	OverlappedEx* overlapped = nullptr;
+	OverlappedEx* overlappedEx = nullptr;
 	WSABUF wsaBuf = { 0 };
 	DWORD numberOfBytesRecvd = 0;
 	DWORD flags = 0;

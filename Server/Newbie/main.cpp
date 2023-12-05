@@ -44,7 +44,7 @@ unsigned __stdcall  recvDispatcher(LPVOID lpParam)
 			curSession->clearOverlapped(1);
 			curSession->clearRecvBuf();
 
-			WSARecv(*completionKey, &curSession->wsaBuf, 1, &curSession->numberOfBytesRecvd, &curSession->flags, (OVERLAPPED*)&curSession->overlapped->overlapped, nullptr);
+			WSARecv(*completionKey, &curSession->wsaBuf, 1, &curSession->numberOfBytesRecvd, &curSession->flags, (OVERLAPPED*)&curSession->overlappedEx->overlapped, nullptr);
 
 		}
 	}
@@ -55,12 +55,12 @@ unsigned __stdcall  recvDispatcher(LPVOID lpParam)
 int main()
 {
 	// 유저 로그인 정보 캐싱
-	DB database;
-	std::wcout << L"database state : " << database.getState() << std::endl;
-	SQLWCHAR statementText[] = L"SELECT * FROM Users";
-	database.requestQuery(statementText);
+	//DB database;
+	//std::wcout << L"database state : " << database.getState() << std::endl;
+	//SQLWCHAR statementText[] = L"SELECT * FROM Users";
+	//database.requestQuery(statementText);
 	
-	
+
 	WSADATA wsaData;
 	int iResult;
 	// The WSAStartup function initiates use of the Winsock DLL by a process.
@@ -144,8 +144,6 @@ int main()
 		WSACleanup();
 		continue;
 	}
-
-	
 	// overlapped 확장 필요 send인지 recv인지 분리
 	
 	// 네이글 알고리즘 끄기
@@ -212,10 +210,11 @@ int main()
 	_newSession->clearRecvBuf();
 
 	//// dwBufferCount : The number of WSABUF structures
-	WSARecv(_newSession->clientSocket, &_newSession->wsaBuf, 1, &_newSession->numberOfBytesRecvd, &_newSession->flags, (OVERLAPPED*)&_newSession->overlapped->overlapped, nullptr);
+	WSARecv(_newSession->clientSocket, &_newSession->wsaBuf, 1, &_newSession->numberOfBytesRecvd, &_newSession->flags, (OVERLAPPED*)&_newSession->overlappedEx->overlapped, nullptr);
 	//// ^^^ I/O request
 
 	// 세션 추가
+	// 클라이언트가 일방적으로 종료할 때 판단해서 소켓 정리 필요함
 	SessionManager.addSession(_newSession->clientSocket, std::move(_newSession));
 
 	}

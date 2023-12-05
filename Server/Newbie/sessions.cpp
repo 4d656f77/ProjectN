@@ -4,7 +4,7 @@
 #define MAXBUFFERSIZE 1000
 session::session()
 {
-	overlapped = new OverlappedEx;
+	overlappedEx = new OverlappedEx;
 	wsaBuf.buf = new char[MAXBUFFERSIZE];
 	wsaBuf.len = MAXBUFFERSIZE;
 	sendBuffer = new char[MAXBUFFERSIZE];
@@ -13,7 +13,7 @@ session::session()
 session::~session()
 {
 	closesocket(clientSocket);
-	delete overlapped;
+	delete overlappedEx;
 	delete[] wsaBuf.buf;
 	delete[] sendBuffer;
 	
@@ -29,8 +29,8 @@ void session::clearRecvBuf()
 void session::clearOverlapped(unsigned int type)
 {
 	
-	ZeroMemory(&overlapped->overlapped, sizeof(OVERLAPPED));
-	overlapped->type = type;
+	ZeroMemory(&overlappedEx->overlapped, sizeof(OVERLAPPED));
+	overlappedEx->type = type;
 }
 
 
